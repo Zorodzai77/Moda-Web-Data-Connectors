@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MoDA API Connector for Tableau</title>
+    <script src="https://connectors.tableau.com/libs/tableauwdc-2.3.latest.js"></script>
+</head>
+<body>
+    <h2>MoDA Web Data Connector</h2>
+    <p>Click the button below to fetch data from the MoDA API and load it into Tableau.</p>
+    <button onclick="fetchData()">Connect to MoDA API</button>
+
+    <script type="text/javascript">
+        (function() {
+            var myConnector = tableau.makeConnector();
+
+            myConnector.getSchema = function(schemaCallback) {
+                var cols = [
+                    { id: "id", dataType: tableau.dataTypeEnum.string },
+                    { id: "location", dataType: tableau.dataTypeEnum.string },
+                    { id: "value", dataType: tableau.dataTypeEnum.float },
+                    { id: "date_collected", dataType: tableau.dataTypeEnum.date }
+                ];
+
+                var tableSchema = {
+                    id: "moda_data",
+                    alias: "MoDA API Collected Data",
+                    columns: cols
+                };
+
+                schemaCallback([tableSchema]);
+            };
+
+            myConnector.getData = function(table, doneCallback) {
+                var apiURL = "https://moda.wfp.org/tableau-web-data-connector/9c5816f5c21143929536d9ef6b668e2a"; 
+                fetch(apiURL, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // 'Authorization': 'Bearer YOUR_API_TOKEN' // <<< Uncomment if authentication needed
+                    }
+                })
+                .then(response => response.json())
+                .then(function(data) {
+                    var tableData = [];
+
+                    data.forEach(function(item) {
+                        tableData.push({
+                            id: item.id,
+                            location: item.location,
+                            value: parseFloat(item.value),
+                            date_collected: item.date_collected
+                        });
+                    });
+
+                    table.appendRows(tableData);
+                    doneCallback();
+                })
+                .catch(error => {
+                    console.error('Error fetching MoDA data:', error);
+                });
+            };
+
+            tableau.registerConnector(myConnector);
+        })();
+
+        function fetchData() {
+            tableau.connectionName = "MoDA API Data";
+            tableau.submit();
+        }
+    </script>
+</body>
+</html>
